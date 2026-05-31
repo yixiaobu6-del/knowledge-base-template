@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>个人知识库架构设计器</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-50 min-h-screen">
+  <div class="max-w-5xl mx-auto p-4 md:p-6">
+    <div class="text-center mb-6">
+      <h1 class="text-3xl font-bold mb-2"><i class="fa fa-sitemap text-indigo-600"></i> 个人知识库架构设计器</h1>
+      <p class="text-gray-500">选择合适的知识管理风格，生成你的专属知识库目录结构</p>
+    </div>
+
+    <!-- 配置面板 -->
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
+      <h2 class="font-bold text-lg mb-4"><i class="fa fa-cog text-gray-500"></i> 配置你的知识库</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div>
+          <label class="block text-sm font-medium mb-1">管理方法</label>
+          <select id="method" class="w-full border rounded px-3 py-2">
+            <option value="pkm">通用PKM（个人知识管理）</option>
+            <option value="zettelkasten">卡片盒笔记法（Zettelkasten）</option>
+            <option value="para">PARA方法（项目·领域·资源·归档）</option>
+            <option value="iy">IY（输入·输出）</option>
+            <option value="custom">自定义结构</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1">知识领域</label>
+          <select id="domain" class="w-full border rounded px-3 py-2">
+            <option value="general">通用</option>
+            <option value="tech">技术/编程</option>
+            <option value="writing">写作/创作</option>
+            <option value="business">商业/创业</option>
+            <option value="academic">学术/研究</option>
+            <option value="design">设计/创意</option>
+          </select>
+        </div>
+      </div>
+
+      <h3 class="font-medium mb-2">选择要包含的模块</h3>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
+        <label class="flex items-center gap-2 p-2 bg-gray-50 rounded hover:bg-indigo-50 cursor-pointer">
+          <input type="checkbox" id="mInbox" checked><span class="text-sm">收件箱 📥</span>
+        </label>
+        <label class="flex items-center gap-2 p-2 bg-gray-50 rounded hover:bg-indigo-50 cursor-pointer">
+          <input type="checkbox" id="mProjects" checked><span class="text-sm">项目 📊</span>
+        </label>
+        <label class="flex items-center gap-2 p-2 bg-gray-50 rounded hover:bg-indigo-50 cursor-pointer">
+          <input type="checkbox" id="mAreas" checked><span class="text-sm">领域 📂</span>
+        </label>
+        <label class="flex items-center gap-2 p-2 bg-gray-50 rounded hover:bg-indigo-50 cursor-pointer">
+          <input type="checkbox" id="mResources" checked><span class="text-sm">资源 📚</span>
+        </label>
+        <label class="flex items-center gap-2 p-2 bg-gray-50 rounded hover:bg-indigo-50 cursor-pointer">
+          <input type="checkbox" id="mArchive"><span class="text-sm">归档 🗄️</span>
+        </label>
+        <label class="flex items-center gap-2 p-2 bg-gray-50 rounded hover:bg-indigo-50 cursor-pointer">
+          <input type="checkbox" id="mDaily"><span class="text-sm">日记 📝</span>
+        </label>
+        <label class="flex items-center gap-2 p-2 bg-gray-50 rounded hover:bg-indigo-50 cursor-pointer">
+          <input type="checkbox" id="mTemplates"><span class="text-sm">模板 📋</span>
+        </label>
+        <label class="flex items-center gap-2 p-2 bg-gray-50 rounded hover:bg-indigo-50 cursor-pointer">
+          <input type="checkbox" id="mOutput"><span class="text-sm">输出 ✍️</span>
+        </label>
+      </div>
+
+      <button onclick="generateStructure()" class="w-full bg-indigo-600 text-white py-3 rounded-lg hover:bg-indigo-700 font-bold">
+        <i class="fa fa-magic"></i> 生成知识库结构
+      </button>
+    </div>
+
+    <!-- 架构可视化 -->
+    <div id="structureOutput" class="hidden space-y-4 mb-6">
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="font-bold text-lg"><i class="fa fa-sitemap text-indigo-600"></i> 知识库目录结构</h2>
+          <div class="flex gap-2">
+            <button onclick="copyStructure()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 text-sm"><i class="fa fa-copy"></i> 复制</button>
+            <button onclick="exportScript()" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 text-sm"><i class="fa fa-download"></i> 创建脚本</button>
+            <button onclick="exportObsidianVault()" class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600 text-sm"><i class="fa fa-archive"></i> 导出Vault包</button>
+          </div>
+        </div>
+
+        <!-- 流程图 -->
+        <div id="flowchart" class="mb-6 p-6 bg-gray-50 rounded-lg"></div>
+
+        <!-- 目录树 -->
+        <pre id="treeOutput" class="bg-gray-900 text-green-400 p-4 rounded text-sm overflow-x-auto whitespace-pre-wrap min-h-[200px]"></pre>
+      </div>
+
+      <!-- 架构说明 -->
+      <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="font-bold text-lg mb-4"><i class="fa fa-lightbulb-o text-yellow-500"></i> 架构说明与管理规则</h2>
+        <div id="rules" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+      </div>
+    </div>
+
+    <!-- 知识库健康度诊断 -->
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="font-bold text-lg"><i class="fa fa-heartbeat text-red-500"></i> 知识库健康度诊断</h2>
+        <button onclick="runDiagnosis()" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 text-sm"><i class="fa fa-stethoscope"></i> 运行诊断</button>
+      </div>
+      <p class="text-gray-500 text-sm mb-4">检测知识库常见问题：空文件夹、缺失模板、无索引文件等。</p>
+      <div id="diagnosisInput" class="bg-gray-50 rounded-lg p-4 mb-3">
+        <label class="block text-sm font-medium mb-2">请输入知识库根目录路径（本地路径或树状结构文本）：</label>
+        <textarea id="kbPathInput" class="w-full border rounded px-3 py-2 text-sm h-24" placeholder="示例：/Users/xxx/MyVault 或粘贴目录树结构..."></textarea>
+        <div class="flex gap-2 mt-2">
+          <button onclick="parseLocalPath()" class="bg-blue-500 text-white px-3 py-1.5 rounded text-sm hover:bg-blue-600"><i class="fa fa-folder-open"></i> 解析路径</button>
+          <button onclick="parseTreeText()" class="bg-gray-500 text-white px-3 py-1.5 rounded text-sm hover:bg-gray-600"><i class="fa fa-file-text-o"></i> 解析树结构</button>
+        </div>
+      </div>
+      <div id="diagnosisResult" class="hidden">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+          <div class="bg-gray-50 rounded p-3 text-center"><div class="text-xl font-bold text-green-600" id="diagFolders">0</div><div class="text-xs text-gray-500">文件夹总数</div></div>
+          <div class="bg-gray-50 rounded p-3 text-center"><div class="text-xl font-bold text-blue-600" id="diagFiles">0</div><div class="text-xs text-gray-500">文件总数</div></div>
+          <div class="bg-gray-50 rounded p-3 text-center"><div class="text-xl font-bold text-red-600" id="diagIssues">0</div><div class="text-xs text-gray-500">发现问题</div></div>
+          <div class="bg-gray-50 rounded p-3 text-center"><div class="text-xl font-bold text-purple-600" id="diagHealth">-</div><div class="text-xs text-gray-500">健康评分</div></div>
+        </div>
+        <div id="issueList" class="space-y-2"></div>
+      </div>
+    </div>
+
+    <!-- 方法对比 -->
+    <div class="bg-white rounded-lg shadow p-6">
+      <h2 class="font-bold text-lg mb-4"><i class="fa fa-balance-scale text-blue-500"></i> 管理方法对比</h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead><tr class="border-b text-gray-500"><th class="pb-2 text-left pr-4">方法</th><th class="pb-2 text-left pr-4">核心理念</th><th class="pb-2 text-left pr-4">适合人群</th><th class="pb-2 text-left pr-4">复杂度</th><th class="pb-2 text-left">推荐工具</th></tr></thead>
+          <tbody>
+            <tr class="border-b"><td class="py-2 pr-4 font-medium">通用PKM</td><td class="py-2 pr-4 text-gray-600">输入→整理→输出→归档</td><td class="py-2 pr-4 text-gray-600">大多数人</td><td class="py-2 pr-4 text-green-600">低</td><td>Obsidian/Notion</td></tr>
+            <tr class="border-b"><td class="py-2 pr-4 font-medium">Zettelkasten</td><td class="py-2 pr-4 text-gray-600">原子笔记+双向链接</td><td class="py-2 pr-4 text-gray-600">写作者/研究者</td><td class="py-2 pr-4 text-yellow-600">中</td><td>Obsidian/Roam</td></tr>
+            <tr class="border-b"><td class="py-2 pr-4 font-medium">PARA</td><td class="py-2 pr-4 text-gray-600">项目导向+定期归档</td><td class="py-2 pr-4 text-gray-600">项目经理/创业者</td><td class="py-2 pr-4 text-yellow-600">中</td><td>Notion/Evernote</td></tr>
+            <tr><td class="py-2 pr-4 font-medium">IY</td><td class="py-2 pr-4 text-gray-600">输入→输出极简双分区</td><td class="py-2 pr-4 text-gray-600">极简主义者</td><td class="py-2 pr-4 text-green-600">极低</td><td>任何工具</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const structures = {
+      pkm: {
+        name: '通用PKM',
+        desc: '六区闭环流转：收集→项目→整理→输出→归档→模板',
+        structure: ['01-收件箱', '02-项目记录', '03-知识整理', '04-输出创作', '05-复盘归档', '06-模板脚本', 'assets', '日记'],
+        flow: ['📥 收件箱', '→', '📊 项目记录', '→', '📂 知识整理', '→', '✍️ 输出创作', '→', '🗄️ 复盘归档'],
+        rules: [
+          { title: '收件箱清零', rule: '每日清理收件箱，存留不超过48小时' },
+          { title: '项目 vs 领域', rule: '项目有明确截止日期，领域是持续关注的区域' },
+          { title: '定期归档', rule: '每季度归档已完成项目，保持工作区整洁' },
+          { title: '双链连接', rule: '新笔记至少与2篇已有笔记建立双向链接' },
+          { title: '每周复盘', rule: '每周日花30分钟回顾本周笔记，更新索引' },
+        ]
+      },
+      zettelkasten: {
+        name: '卡片盒笔记法',
+        desc: '原子笔记+双向链接+索引结构',
+        structure: ['01-闪念笔记', '02-文献笔记', '03-永久笔记', '04-索引/MOC', '05-项目笔记', '06-模板', 'assets'],
+        flow: ['💡 闪念笔记', '→', '📖 文献笔记', '→', '🧠 永久笔记', '→', '🗺️ MOC索引', '→', '📋 项目笔记'],
+        rules: [
+          { title: '原子性', rule: '每张卡片只记录一个想法，不超过一段话' },
+          { title: '用自己的话', rule: '永久笔记必须用自己的语言重述，不复制粘贴' },
+          { title: '链接优先', rule: '每张永久笔记至少链接到1张已有笔记' },
+          { title: '索引目录', rule: '用MOC（内容地图）管理主题，而非文件夹' },
+          { title: '渐进提炼', rule: '信息经过3次提炼（闪念→文献→永久）才纳入体系' },
+        ]
+      },
+      para: {
+        name: 'PARA方法',
+        desc: '项目→领域→资源→归档 四区',
+        structure: ['01-项目（Projects）', '02-领域（Areas）', '03-资源（Resources）', '04-归档（Archives）', '05-收件箱', '06-模板'],
+        flow: ['📥 收件箱', '→', '📊 项目', '→', '📂 领域', '→', '📚 资源', '→', '🗄️ 归档'],
+        rules: [
+          { title: '项目驱动', rule: '所有工作围绕当前项目展开，无项目则不创建笔记' },
+          { title: '领域管理', rule: '领域是持续责任区，不设截止日期' },
+          { title: '资源储备', rule: '资源区存放未来可能有用但不紧急的信息' },
+          { title: '季度归档', rule: '每季度盘点：完成的项目→归档，搁置的项目→移出' },
+          { title: '文件夹上限', rule: '每个层级文件夹不超过20个，超出需要合并或归档' },
+        ]
+      },
+      iy: {
+        name: 'IY极简法',
+        desc: '输入/输出双分区+收件箱',
+        structure: ['01-输入（Input）', '02-输出（Output）', '03-收件箱', '04-模板', '05-归档'],
+        flow: ['📥 收件箱', '→', '📚 输入', '→', '✍️ 输出'],
+        rules: [
+          { title: '输入不等于收藏', rule: '输入区的笔记必须经过理解和重述，不是收藏夹' },
+          { title: '输出驱动输入', rule: '先确定要输出什么，再有针对性地输入' },
+          { title: '每周清理', rule: '每周清理收件箱，不留过周信息' },
+          { title: '少即是多', rule: '定期删除低价值笔记，保持库精简' },
+        ]
+      },
+      custom: {
+        name: '自定义结构',
+        desc: '根据选择的模块自由组合',
+        structure: [],
+        flow: [],
+        rules: [
+          { title: '一致性', rule: '命名规范保持一致：数字前缀+中文名+可选的英文别名' },
+          { title: '收件箱清零', rule: '收件箱存留不超过72小时' },
+          { title: '定期维护', rule: '每周花30分钟整理和维护知识库' },
+          { title: '备份策略', rule: '每周全量备份，每日增量备份' },
+          { title: '渐进式建设', rule: '先建骨架再填空，不要一次追求完美' },
+        ]
+      }
+    };
+
+    const domainStructures = {
+      tech: { subs: ['编程语言', '框架/库', '工具/DevOps', '算法/数据结构', '系统设计', '最佳实践'] },
+      writing: { subs: ['选题库', '素材收集', '写作框架', '编辑/校对', '已发表', '数据分析'] },
+      business: { subs: ['商业模型', '市场分析', '产品设计', '运营策略', '财务/法务', '客户管理'] },
+      academic: { subs: ['文献管理', '实验/数据', '论文写作', '会议/报告', '研究方法', '引用管理'] },
+      design: { subs: ['灵感收集', '设计原则', '工具/资源', '项目作品', '反馈/迭代', '学习笔记'] },
+      general: { subs: ['阅读笔记', '课程学习', '想法/灵感', '工具推荐', '经验总结', '待整理'] }
+    };
+
+    // 模板文件内容
+    const TEMPLATE_FILES = {
+      'README.md': `# MyKnowledgeBase\n\n> 使用 {{method}} 方法管理\n> 创建日期: {{date}}\n\n## 目录说明\n{{structure}}\n\n## 管理规则\n{{rules}}`,
+      '模板/笔记模板.md': `# {{title}}\n\n创建日期: {{date}}\n标签: \n来源: \n\n## 内容\n\n## 相关链接\n- `,
+      '模板/项目模板.md': `# {{project_name}}\n\n创建日期: {{date}}\n截止日期: \n状态: 进行中\n\n## 目标\n\n## 任务清单\n- [ ] \n\n## 相关笔记\n- `,
+      '模板/日记模板.md': `# {{date}} 日记\n\n## 今日事项\n\n## 感悟\n\n## 明日计划\n`,
+      '.obsidian/app.json': `{ "legacyEditor": false, "promptDelete": false }`,
+      '.obsidian/workspace.json': `{}`
+    };
+
+    function generateStructure() {
+      const method = document.getElementById('method').value;
+      const domain = document.getElementById('domain').value;
+      const selectedMods = [];
+      if (document.getElementById('mInbox').checked) selectedMods.push('收件箱');
+      if (document.getElementById('mProjects').checked) selectedMods.push('项目');
+      if (document.getElementById('mAreas').checked) selectedMods.push('领域');
+      if (document.getElementById('mResources').checked) selectedMods.push('资源');
+      if (document.getElementById('mArchive').checked) selectedMods.push('归档');
+      if (document.getElementById('mDaily').checked) selectedMods.push('日记');
+      if (document.getElementById('mTemplates').checked) selectedMods.push('模板');
+      if (document.getElementById('mOutput').checked) selectedMods.push('输出');
+
+      const config = structures[method] || structures.pkm;
+      const domainData = domainStructures[domain] || domainStructures.general;
+
+      // 生成目录树
+      let tree = `📁 MyKnowledgeBase/\n`;
+
+      if (method === 'custom') {
+        tree += selectedMods.map(m => `├── 📁 ${m}/`).join('\n');
+        tree += `\n└── 📁 assets/`;
+      } else {
+        config.structure.forEach((dir, i) => {
+          const isLast = i === config.structure.length - 1;
+          tree += `${isLast ? '└──' : '├──'} 📁 ${dir}/\n`;
+          if (dir === '03-知识整理' || dir === '03-永久笔记' || dir === '03-文献笔记') {
+            domainData.subs.slice(0, 4).forEach((sub, j) => {
+              tree += `${isLast ? '    ' : '│   '}${j === 3 ? '└──' : '├──'} 📄 ${sub}/\n`;
+            });
+          }
+        });
+      }
+
+      // 流程图
+      const flowData = method === 'custom'
+        ? ['📥 收件箱', '→', ...selectedMods.slice(0, 3), '→', '🗄️ 归档']
+        : config.flow;
+
+      const flowchart = document.getElementById('flowchart');
+      flowchart.innerHTML = `
+        <div class="flex flex-wrap items-center justify-center gap-2">
+          ${flowData.map((item, i) => {
+            if (item === '→') return `<span class="text-xl text-gray-300">→</span>`;
+            return `<span class="inline-block px-4 py-2 rounded-lg bg-indigo-100 text-indigo-700 font-medium shadow-sm text-sm">${item}</span>`;
+          }).join('')}
+        </div>
+        <div class="text-center mt-3 text-sm text-gray-400">${config.desc}</div>
+      `;
+
+      document.getElementById('treeOutput').textContent = tree;
+
+      // 规则
+      const rulesContainer = document.getElementById('rules');
+      rulesContainer.innerHTML = config.rules.map(r => `
+        <div class="p-3 bg-gray-50 rounded">
+          <h4 class="font-medium text-sm text-indigo-700 mb-1">${r.title}</h4>
+          <p class="text-sm text-gray-600">${r.rule}</p>
+        </div>
+      `).join('');
+
+      document.getElementById('structureOutput').classList.remove('hidden');
+      window.currentTree = tree;
+      window.currentMethod = method;
+      window.currentConfig = config;
+    }
+
+    function copyStructure() {
+      if (window.currentTree) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(window.currentTree).then(() => alert('目录结构已复制')).catch(() => fallbackCopy(window.currentTree));
+        } else {
+          fallbackCopy(window.currentTree);
+        }
+      }
+    }
+    function fallbackCopy(text) {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+      alert('目录结构已复制');
+    }
+
+    // localStorage保存/加载配置
+    const kbConfigKey = 'kb_designer_config';
+    function saveKBConfig() {
+      const config = {
+        method: document.getElementById('method').value,
+        domain: document.getElementById('domain').value,
+        modules: {
+          inbox: document.getElementById('mInbox').checked,
+          projects: document.getElementById('mProjects').checked,
+          areas: document.getElementById('mAreas').checked,
+          resources: document.getElementById('mResources').checked,
+          archive: document.getElementById('mArchive').checked,
+          daily: document.getElementById('mDaily').checked,
+          templates: document.getElementById('mTemplates').checked,
+          output: document.getElementById('mOutput').checked
+        }
+      };
+      localStorage.setItem(kbConfigKey, JSON.stringify(config));
+    }
+    function loadKBConfig() {
+      const saved = JSON.parse(localStorage.getItem(kbConfigKey) || '{}');
+      if (saved.method) document.getElementById('method').value = saved.method;
+      if (saved.domain) document.getElementById('domain').value = saved.domain;
+      if (saved.modules) {
+        Object.keys(saved.modules).forEach(k => {
+          const el = document.getElementById('m' + k.charAt(0).toUpperCase() + k.slice(1));
+          if (el) el.checked = saved.modules[k];
+        });
+      }
+    }
+    document.getElementById('method').addEventListener('change', saveKBConfig);
+    document.getElementById('domain').addEventListener('change', saveKBConfig);
+    document.querySelectorAll('input[type="checkbox"]').forEach(el => el.addEventListener('change', saveKBConfig));
+
+    loadKBConfig();
+
+    // ===== 导出脚本 =====
+    function exportScript() {
+      const method = window.currentMethod || 'pkm';
+      const vaultName = 'MyKnowledgeBase';
+      const tree = window.currentTree || '';
+
+      const script = `#!/bin/bash
+# 知识库创建脚本 - 自动生成目录结构
+
+VAULT_NAME="${vaultName}"
+mkdir -p "$VAULT_NAME"
+
+# 创建目录结构
+${tree.split('\n').filter(l => l.includes('📁')).map(l => {
+  const path = l.replace(/[├└│─\s]+/, '').replace(/📁\s*/, '');
+  return `mkdir -p "$VAULT_NAME/${path}"`;
+}).join('\n')}
+
+# 生成 .gitkeep
+find "$VAULT_NAME" -type d -empty -exec touch {}/.gitkeep \\;
+
+# 生成 README
+cat > "$VAULT_NAME/README.md" << 'EOF'
+# ${vaultName}
+
+> 使用 ${structures[method]?.name || '自定义'} 方法管理
+> 创建日期: $(date +%Y-%m-%d)
+
+## 目录说明
+${tree.split('\n').filter(l => l.includes('📁')).map(l => {
+  const path = l.replace(/[├└│─\s]+/, '').replace(/📁\s*/, '');
+  return `- \`${path}/\`: `;
+}).join('\n')}
+EOF
+
+echo "✅ 知识库已创建: $VAULT_NAME"`;
+
+      downloadFile(script, 'create_vault.sh', 'text/plain');
+    }
+
+    // ===== 导出 Obsidian Vault 包 =====
+    function exportObsidianVault() {
+      const method = window.currentMethod || 'pkm';
+      const tree = window.currentTree || '';
+      const config = window.currentConfig || structures.pkm;
+      const date = new Date().toLocaleDateString('zh-CN');
+
+      // 解析目录结构
+      const dirs = tree.split('\n').filter(l => l.includes('📁')).map(l => {
+        return l.replace(/[├└│─\s]+/, '').replace(/📁\s*/, '');
+      });
+
+      // 构建文件列表
+      const fileList = [];
+      dirs.forEach(dir => {
+        fileList.push({ path: `${dir}/.gitkeep`, content: '' });
+      });
+
+      // 添加模板文件
+      const readmeContent = TEMPLATE_FILES['README.md']
+        .replace('{{method}}', config.name || '自定义')
+        .replace('{{date}}', date)
+        .replace('{{structure}}', dirs.map(d => `- \`${d}/\``).join('\n'))
+        .replace('{{rules}}', config.rules.map(r => `- ${r.title}: ${r.rule}`).join('\n'));
+      fileList.push({ path: 'README.md', content: readmeContent });
+
+      // 添加 Obsidian 配置
+      fileList.push({ path: '.obsidian/app.json', content: TEMPLATE_FILES['.obsidian/app.json'] });
+      fileList.push({ path: '.obsidian/workspace.json', content: TEMPLATE_FILES['.obsidian/workspace.json'] });
+
+      // 添加模板文件到模板目录
+      if (dirs.some(d => d.includes('模板'))) {
+        fileList.push({ path: '模板/笔记模板.md', content: TEMPLATE_FILES['模板/笔记模板.md'].replace('{{date}}', date) });
+        fileList.push({ path: '模板/项目模板.md', content: TEMPLATE_FILES['模板/项目模板.md'].replace('{{date}}', date) });
+        fileList.push({ path: '模板/日记模板.md', content: TEMPLATE_FILES['模板/日记模板.md'].replace('{{date}}', date) });
+      }
+
+      // 生成 JSON 文件列表
+      const jsonContent = JSON.stringify({
+        name: 'MyKnowledgeBase',
+        created: date,
+        method: config.name || '自定义',
+        files: fileList
+      }, null, 2);
+
+      downloadFile(jsonContent, 'vault_structure.json', 'application/json');
+
+      // 同时生成 shell 脚本
+      const script = generateVaultScript(dirs, fileList, config, date);
+      downloadFile(script, 'create_vault.sh', 'text/plain');
+
+      alert('已生成 vault_structure.json 和 create_vault.sh，可使用脚本一键创建知识库');
+    }
+
+    function generateVaultScript(dirs, files, config, date) {
+      return `#!/bin/bash
+# Obsidian Vault 创建脚本
+# 使用方法：chmod +x create_vault.sh && ./create_vault.sh
+
+VAULT="MyKnowledgeBase"
+mkdir -p "$VAULT"
+
+# 创建目录
+${dirs.map(d => `mkdir -p "$VAULT/${d}"`).join('\n')}
+
+# 创建文件
+${files.map(f => {
+  if (!f.content) return `touch "$VAULT/${f.path}"`;
+  return `cat > "$VAULT/${f.path}" << 'ENDFILE'\n${f.content}\nENDFILE`;
+}).join('\n')}
+
+echo "✅ Obsidian Vault 已创建: $VAULT"
+echo "请将 $VAULT 目录导入 Obsidian"`;
+    }
+
+    function downloadFile(content, filename, mimeType) {
+      const blob = new Blob([content], { type: mimeType + ';charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+
+    // ===== 健康度诊断 =====
+    let kbStructure = [];
+
+    function parseLocalPath() {
+      const input = document.getElementById('kbPathInput').value.trim();
+      if (!input) { alert('请输入路径'); return; }
+      // 模拟解析 - 实际需要用户提供树结构文本
+      alert('请在下方粘贴目录树结构（使用 tree 命令或手动输入），然后点击「解析树结构」');
+    }
+
+    function parseTreeText() {
+      const input = document.getElementById('kbPathInput').value.trim();
+      if (!input) { alert('请输入目录树结构'); return; }
+
+      kbStructure = [];
+      const lines = input.split('\n');
+      let currentPath = [];
+
+      lines.forEach(line => {
+        const depth = (line.match(/[│├└\s]/g) || []).length;
+        const name = line.replace(/[│├└─\s📁📄]/g, '').trim();
+        if (!name) return;
+
+        if (line.includes('📁') || !line.includes('.')) {
+          currentPath[depth] = name;
+          kbStructure.push({
+            type: 'folder',
+            name: name,
+            path: currentPath.slice(0, depth + 1).join('/'),
+            depth: depth
+          });
+        } else {
+          kbStructure.push({
+            type: 'file',
+            name: name,
+            path: currentPath.slice(0, depth).join('/') + '/' + name,
+            depth: depth
+          });
+        }
+      });
+
+      runDiagnosis();
+    }
+
+    function runDiagnosis() {
+      if (kbStructure.length === 0) {
+        // 如果没有解析结构，用生成的结构模拟
+        const tree = window.currentTree || '';
+        if (tree) {
+          parseTreeText();
+          return;
+        }
+        alert('请先生成知识库结构或粘贴目录树文本');
+        return;
+      }
+
+      const issues = [];
+      const folders = kbStructure.filter(i => i.type === 'folder');
+      const files = kbStructure.filter(i => i.type === 'file');
+
+      // 检测空文件夹（没有子文件）
+      folders.forEach(f => {
+        const hasChildren = kbStructure.some(i => i.path.startsWith(f.path + '/') && i.type === 'file');
+        if (!hasChildren) {
+          issues.push({ type: 'empty', folder: f.name, path: f.path, severity: 'warning', msg: `空文件夹: ${f.name}` });
+        }
+      });
+
+      // 检测缺失模板
+      const hasTemplates = folders.some(f => f.name.includes('模板') || f.name.includes('template'));
+      if (hasTemplates) {
+        const templateFiles = files.filter(f => f.path.includes('模板') && f.name.endsWith('.md'));
+        if (templateFiles.length === 0) {
+          issues.push({ type: 'missing_template', severity: 'warning', msg: '模板文件夹缺少模板文件' });
+        }
+      }
+
+      // 检测缺失索引
+      const hasIndex = files.some(f => f.name.toLowerCase().includes('index') || f.name === 'README.md');
+      if (!hasIndex) {
+        issues.push({ type: 'missing_index', severity: 'info', msg: '缺少索引文件（index.md 或 README.md）' });
+      }
+
+      // 检测 .obsidian 配置
+      const hasObsidian = folders.some(f => f.name === '.obsidian');
+      if (!hasObsidian) {
+        issues.push({ type: 'obsidian_config', severity: 'info', msg: '缺少 .obsidian 配置目录（非 Obsidian vault）' });
+      }
+
+      // 检测命名不规范
+      kbStructure.forEach(i => {
+        if (i.name.match(/[^\w\-_\u4e00-\u9fff\s\.\(\)]/)) {
+          issues.push({ type: 'naming', name: i.name, path: i.path, severity: 'info', msg: `命名含特殊字符: ${i.name}` });
+        }
+      });
+
+      // 显示结果
+      document.getElementById('diagnosisResult').classList.remove('hidden');
+      document.getElementById('diagFolders').textContent = folders.length;
+      document.getElementById('diagFiles').textContent = files.length;
+      document.getElementById('diagIssues').textContent = issues.length;
+
+      // 健康评分
+      const warningCount = issues.filter(i => i.severity === 'warning').length;
+      const healthScore = Math.max(0, 100 - warningCount * 15 - issues.filter(i => i.severity === 'info').length * 5);
+      document.getElementById('diagHealth').textContent = healthScore + '%';
+
+      const issueList = document.getElementById('issueList');
+      if (issues.length === 0) {
+        issueList.innerHTML = '<div class="text-center py-6 text-green-500"><i class="fa fa-check-circle text-2xl block mb-2"></i>知识库健康状况良好！</div>';
+      } else {
+        issueList.innerHTML = issues.map(i => `
+          <div class="flex items-center gap-3 p-3 rounded ${i.severity === 'warning' ? 'bg-yellow-50 border border-yellow-200' : 'bg-blue-50 border border-blue-200'}">
+            <i class="fa ${i.severity === 'warning' ? 'fa-exclamation-triangle text-yellow-500' : 'fa-info-circle text-blue-500'}"></i>
+            <span class="text-sm ${i.severity === 'warning' ? 'text-yellow-700' : 'text-blue-700'}">${i.msg}</span>
+            ${i.path ? `<span class="text-xs text-gray-400 ml-auto">${i.path}</span>` : ''}
+          </div>
+        `).join('');
+      }
+    }
+  </script>
+</body>
+</html>
